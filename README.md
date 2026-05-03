@@ -99,8 +99,8 @@ Default local database settings are in `backend/backend/backend/src/main/resourc
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/campusflow
-    username: postgres
-    password: postgres
+    username: username
+    password: password
 ```
 
 Change these values for your local PostgreSQL setup before running the app.
