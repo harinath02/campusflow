@@ -1,0 +1,71 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h2>Manage request types</h2>
+    <p>Configure active workflow categories without allowing admins to raise or approve student requests.</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search request types" [value]="search" (input)="search=$any($event.target).value" />
+    <button class="btn primary" type="button" (click)="openCreate()">Add type</button>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Code</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        @if (loading) {
+          <tr><td colspan="5"><div class="skeleton"></div></td></tr>
+        } @else {
+          @for (item of filtered; track item.id) {
+            <tr>
+              <td><strong>{{ item.name }}</strong></td>
+              <td><span class="badge neutral">{{ item.code }}</span></td>
+              <td>{{ item.description || 'No description' }}</td>
+              <td><span class="badge {{ item.active ? 'success' : 'neutral' }}">{{ item.active ? 'ACTIVE' : 'INACTIVE' }}</span></td>
+              <td>
+                <div class="actions">
+                  <button class="btn ghost small" type="button" (click)="openEdit(item)">Edit</button>
+                  @if (item.active) { <button class="btn danger small" type="button" (click)="deactivate(item)">Deactivate</button> }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5"><div class="empty">No request types found.</div></td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (showPanel) {
+  <div class="modal-backdrop" (click)="closePanel()"></div>
+  <form class="dialog" [formGroup]="form" (ngSubmit)="save()">
+    <p class="eyebrow">{{ editing ? 'Edit' : 'Create' }}</p>
+    <h3>{{ editing ? 'Edit request type' : 'Add request type' }}</h3>
+    <div class="form-grid">
+      <label>Name <span class="required">*</span>
+        <input formControlName="name" [class.invalid]="fieldError('name')" />
+        @if (fieldError('name')) { <small>{{ fieldError('name') }}</small> }
+      </label>
+      <label>Code <span class="required">*</span>
+        <input formControlName="code" [class.invalid]="fieldError('code')" />
+        @if (fieldError('code')) { <small>{{ fieldError('code') }}</small> }
+      </label>
+      <label>Description <textarea rows="3" formControlName="description"></textarea></label>
+    </div>
+    <div class="panel-actions">
+      <button class="btn ghost" type="button" (click)="closePanel()">Cancel</button>
+      <button class="btn primary" type="submit" [disabled]="saving">{{ saving ? 'Saving...' : 'Save' }}</button>
+    </div>
+  </form>
+}
+
+<app-confirm-dialog
+  [open]="!!pendingDeactivate"
+  title="Deactivate request type"
+  [message]="'Deactivate ' + (pendingDeactivate?.name || 'this request type') + '?'"
+  (confirm)="confirmDeactivate()"
+  (cancel)="pendingDeactivate = null" />

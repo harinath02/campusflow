@@ -1,0 +1,53 @@
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin workspace</span>
+    <h2>User directory</h2>
+    <p>Audit students, department officers, and admins from a read-only management view.</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search users" [value]="search" (input)="search=$any($event.target).value" />
+    <div class="segmented">
+      <button type="button" [class.active]="roleFilter==='ALL'" (click)="roleFilter='ALL'">All</button>
+      <button type="button" [class.active]="roleFilter==='STUDENT'" (click)="roleFilter='STUDENT'">Students</button>
+      <button type="button" [class.active]="roleFilter==='OFFICER'" (click)="roleFilter='OFFICER'">Officers</button>
+      <button type="button" [class.active]="roleFilter==='ADMIN'" (click)="roleFilter='ADMIN'">Admins</button>
+    </div>
+    <button class="btn ghost" type="button" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<div class="metric-strip">
+  <article><strong>{{ users.length }}</strong><span>Total users</span></article>
+  <article><strong>{{ filtered.length }}</strong><span>Visible</span></article>
+  <article><strong>{{ roleFilter }}</strong><span>Filter</span></article>
+</div>
+
+<section class="panel elevated">
+  @if (loading) {
+    <div class="empty-state"><strong>Loading users</strong></div>
+  } @else if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User</th><th>Role</th><th>Department</th><th>Student details</th></tr></thead>
+        <tbody>
+          @for (user of filtered; track user.id) {
+            <tr>
+              <td><div class="identity-cell"><span>{{ user.name.charAt(0) }}</span><div><b>{{ user.name }}</b><small>{{ user.email }}</small></div></div></td>
+              <td><span class="badge neutral">{{ user.role }}</span></td>
+              <td>{{ user.department || '-' }}</td>
+              <td>
+                @if (user.role === 'STUDENT') {
+                  <span>{{ user.branch || '-' }}</span><small class="subtext">Year: {{ user.admissionYear || '-' }} · Roll: {{ user.rollNumber || '-' }}</small>
+                } @else {
+                  <span class="subtext">Not applicable</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><strong>No users found</strong><p>Try another filter or register accounts from the welcome page.</p></div>
+  }
+</section>

@@ -1,0 +1,40 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Admin workspace</p>
+    <h2>Audit logs</h2>
+    <p>Review user, department, and request workflow activity.</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search audit logs" [value]="search" (input)="search=$any($event.target).value" />
+    <button class="btn ghost" type="button" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-title">
+    <div><h3>Activity stream</h3><p>{{ filtered.length }} log entries</p></div>
+  </div>
+
+  @if (loading) {
+    <div class="empty-state"><strong>Loading audit logs</strong></div>
+  } @else if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Description</th></tr></thead>
+        <tbody>
+          @for (log of filtered; track log.id) {
+            <tr>
+              <td>{{ log.timestamp | date:'medium' }}</td>
+              <td><strong>{{ log.actorName }}</strong><small class="subtext">User: {{ log.userId || '-' }}</small></td>
+              <td><span class="badge neutral">{{ log.action.replace('_', ' ') }}</span></td>
+              <td>{{ log.entityType }} #{{ log.entityId || '-' }}</td>
+              <td>{{ log.description || '-' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><strong>No audit logs</strong><p>Activity will appear after users create requests or admins manage data.</p></div>
+  }
+</section>

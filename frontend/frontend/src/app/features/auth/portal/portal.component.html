@@ -1,0 +1,22 @@
+<main class="portal-page">
+  <section class="portal-hero">
+    <span class="brand-mark">CF</span>
+    <span class="eyebrow">CampusFlow workspace</span>
+    <h1>College paper-work approvals, redesigned.</h1>
+    <p>Choose your workspace. Students get a simple request tracker, departments get a decision queue, and admins get full operational control.</p>
+  </section>
+
+  <section class="persona-grid" aria-label="Choose account type">
+    @for (persona of personas; track persona.key) {
+      <article class="persona-card">
+        <div class="persona-icon">{{ persona.icon }}</div>
+        <h2>{{ persona.title }}</h2>
+        <p>{{ persona.subtitle }}</p>
+        <div class="persona-actions">
+          <a class="btn primary" [routerLink]="['/login']" [queryParams]="{ type: persona.key }">Sign in</a>
+          <a class="btn ghost" [routerLink]="['/register']" [queryParams]="{ type: persona.key }">Sign up</a>
+        </div>
+      </article>
+    }
+  </section>
+</main>

@@ -1,0 +1,69 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Create request</p>
+    <h2>Raise a campus service request</h2>
+    <p>Select a workflow type, describe what you need, and CampusFlow will route it to department approvers.</p>
+  </div>
+  <div class="head-actions">
+    @if (noDuesType) { <button class="btn ghost" type="button" (click)="startNoDues()">Start No Dues</button> }
+    <a class="btn ghost" routerLink="/student/requests">Back to requests</a>
+  </div>
+</section>
+
+<section class="split-grid">
+  <form class="panel" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="panel-title">
+      <div>
+        <h3>Request details</h3>
+        <p>Your student account is attached automatically.</p>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <label>Student
+        <input [value]="currentUser?.name || 'Student'" disabled />
+      </label>
+      <label>Request type <span class="required">*</span>
+        <select formControlName="requestTypeId" [class.invalid]="fieldError('requestTypeId')">
+          <option [value]="0">Select a request type</option>
+          @for (type of requestTypes; track type.id) {
+            <option [value]="type.id">{{ type.name }}</option>
+          }
+        </select>
+        @if (fieldError('requestTypeId')) { <small>{{ fieldError('requestTypeId') }}</small> }
+      </label>
+      <label>Priority <span class="required">*</span>
+        <select formControlName="priority" [class.invalid]="fieldError('priority')">
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+      </label>
+      <label>Title <span class="required">*</span>
+        <input formControlName="title" placeholder="Short request title" [class.invalid]="fieldError('title')" />
+        @if (fieldError('title')) { <small>{{ fieldError('title') }}</small> }
+      </label>
+      <label>Description
+        <textarea rows="5" formControlName="description" placeholder="Add context, dates, documents, or department notes"></textarea>
+      </label>
+      <button class="btn primary" type="submit" [disabled]="saving">{{ saving ? 'Submitting...' : 'Submit request' }}</button>
+    </div>
+  </form>
+
+  <aside class="panel">
+    <div class="panel-title"><div><h3>Department workflow</h3><p>Each department receives an actionable approval item after submission.</p></div></div>
+    <div class="timeline">
+      @for (department of departments; track department.id) {
+        <article class="timeline-row">
+          <div class="step-dot">-</div>
+          <div class="step-card">
+            <div><h4>{{ department.name }}</h4><span class="badge pending">IN REVIEW</span></div>
+            <p>{{ department.description || 'Officer review will appear here after submission.' }}</p>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state"><strong>No departments configured</strong><p>An admin must create departments before requests can be routed.</p></div>
+      }
+    </div>
+  </aside>
+</section>

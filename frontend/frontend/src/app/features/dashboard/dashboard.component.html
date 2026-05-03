@@ -1,0 +1,89 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">@if (isAdmin) { Admin dashboard } @else if (isOfficer) { Department dashboard } @else { Student dashboard }</p>
+    <h2>@if (isAdmin) { Campus service operations } @else if (isOfficer) { Department request queue } @else { Your request workspace }</h2>
+    <p>@if (isAdmin) { Monitor users, departments, requests, delayed work, and recent audit activity. } @else if (isOfficer) { Review requests assigned to {{ currentUser?.department || 'your department' }} and keep SLA work moving. } @else { Raise requests, track department decisions, and watch completion status. }</p>
+  </div>
+  <div class="head-actions">
+    <button class="btn ghost" type="button" (click)="load()">Refresh</button>
+    @if (isStudent) { <a class="btn primary" routerLink="/student/requests/new">Create Request</a> }
+    @if (isOfficer) { <a class="btn primary" routerLink="/department/queue">Open Queue</a> }
+  </div>
+</section>
+
+@if (loading) {
+  <section class="summary-grid">
+    <article class="summary-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+    <article class="summary-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+    <article class="summary-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+    <article class="summary-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+  </section>
+} @else {
+  <section class="summary-grid">
+    @if (isAdmin) {
+      <article class="summary-card"><span>Total users</span><strong>{{ users.length }}</strong><small>All roles</small></article>
+      <article class="summary-card"><span>Departments</span><strong>{{ departments.length }}</strong><small>Approval desks</small></article>
+      <article class="summary-card"><span>Total requests</span><strong>{{ totalRequests }}</strong><small>System workload</small></article>
+      <article class="summary-card"><span>Delayed</span><strong>{{ delayedCount }}</strong><small>Past SLA</small></article>
+    } @else {
+      <article class="summary-card"><span>Total requests</span><strong>{{ totalRequests }}</strong><small>@if (isOfficer) { Assigned to department } @else { Raised by you }</small></article>
+      <article class="summary-card"><span>Pending</span><strong>{{ pendingCount }}</strong><small>Submitted or in review</small></article>
+      <article class="summary-card"><span>Completed</span><strong>{{ completedCount }}</strong><small>All departments approved</small></article>
+      <article class="summary-card"><span>Rejected / Hold</span><strong>{{ rejectedCount }}</strong><small>Needs attention</small></article>
+    }
+  </section>
+
+  <section class="dashboard-grid">
+    <div class="panel">
+      <div class="panel-title">
+        <div>
+          <h3>@if (isAdmin) { Recent requests } @else if (isOfficer) { Assigned queue } @else { Recent requests }</h3>
+          <p>@if (isOfficer) { Latest work routed to your department. } @else { Most recent request activity. }</p>
+        </div>
+        @if (isStudent) { <a class="btn ghost small" routerLink="/student/requests">View all</a> }
+        @if (isOfficer) { <a class="btn ghost small" routerLink="/department/queue">View queue</a> }
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Request</th><th>Status</th><th>SLA</th><th>Created</th><th></th></tr></thead>
+          <tbody>
+            @for (request of recentRequests; track request.id) {
+              <tr>
+                <td><strong>{{ request.title }}</strong><small class="subtext">{{ request.requestNumber }} · {{ request.requestType }}</small></td>
+                <td><app-status-badge [status]="request.status" /></td>
+                <td>@if (request.delayed) { <span class="badge danger">DELAYED</span> } @else { <span class="badge success">ON TIME</span> }</td>
+                <td>{{ request.createdAt | date:'mediumDate' }}</td>
+                <td>@if (!isAdmin) { <a class="btn ghost small" [routerLink]="detailRoute(request)">Open</a> }</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5"><div class="empty-state"><strong>No requests yet</strong><p>@if (isStudent) { Create your first campus request. } @else { There is no queue activity for this view. }</p></div></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <aside class="panel">
+      @if (isAdmin) {
+        <div class="panel-title"><div><h3>Recent audit activity</h3><p>System changes and request decisions.</p></div><a class="btn ghost small" routerLink="/admin/audit-logs">View logs</a></div>
+        <div class="focus-list">
+          @for (log of auditLogs.slice(0, 6); track log.id) {
+            <div>
+              <span class="focus-dot"></span>
+              <strong>{{ log.action.replace('_', ' ') }}</strong>
+              <small>{{ log.actorName }} · {{ log.timestamp | date:'short' }}</small>
+            </div>
+          } @empty { <div class="empty">No audit activity yet.</div> }
+        </div>
+      } @else {
+        <div class="panel-title"><div><h3>SLA health</h3><p>Requests expected within three days.</p></div></div>
+        <div class="progress-ring">
+          <strong>{{ delayedCount }}</strong>
+          <span>Delayed requests</span>
+        </div>
+        <div class="progress"><i [style.width.%]="totalRequests ? ((totalRequests - delayedCount) / totalRequests) * 100 : 0"></i></div>
+      }
+    </aside>
+  </section>
+}

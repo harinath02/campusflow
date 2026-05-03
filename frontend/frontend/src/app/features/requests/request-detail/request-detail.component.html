@@ -1,0 +1,48 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Request details</p>
+    <h2>{{ viewModel?.request?.title || 'Request Details' }}</h2>
+    <p>Review the request summary, SLA status, and department-wise approval timeline.</p>
+  </div>
+  <a class="btn ghost" [routerLink]="backLink">Back</a>
+</section>
+
+@if (errorMessage) {
+  <div class="alert error">{{ errorMessage }}</div>
+} @else if (!viewModel) {
+  <app-empty-state title="Loading request" description="Preparing the request details." />
+} @else {
+  <section class="panel detail-panel">
+    <div class="panel-title">
+      <div>
+        <h3>{{ viewModel.request.title }}</h3>
+        <p>{{ viewModel.request.requestNumber }} · {{ viewModel.request.requestType }}</p>
+      </div>
+      <app-status-badge [status]="viewModel.request.status" />
+    </div>
+
+    <div class="detail-grid">
+      <div><span>Requester</span><strong>{{ viewModel.request.requesterName }}</strong></div>
+      <div><span>Priority</span><strong>{{ viewModel.request.priority || 'MEDIUM' }}</strong></div>
+      <div><span>Created</span><strong>{{ viewModel.request.createdAt | date:'medium' }}</strong></div>
+      <div><span>Submitted</span><strong>{{ viewModel.request.submittedAt | date:'medium' }}</strong></div>
+      <div><span>Expected completion</span><strong>{{ viewModel.request.expectedCompletionTime | date:'medium' }}</strong></div>
+      <div><span>Actual completion</span><strong>{{ viewModel.request.actualCompletionTime ? (viewModel.request.actualCompletionTime | date:'medium') : 'Open' }}</strong></div>
+      <div><span>SLA</span><strong>@if (viewModel.request.delayed) { Delayed } @else { On time }</strong></div>
+    </div>
+
+    <p class="description">{{ viewModel.request.description || 'No description provided.' }}</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <div>
+        <h3>Department approval timeline</h3>
+        <p>Library, Hostel, Accounts, Admin Office, and any configured departments appear here.</p>
+      </div>
+      <span class="badge neutral">{{ viewModel.approvals.length }} departments</span>
+    </div>
+
+    <app-request-timeline [approvals]="viewModel.approvals" />
+  </section>
+}

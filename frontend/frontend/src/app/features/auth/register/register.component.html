@@ -1,0 +1,32 @@
+<main class="auth-page auth-page--single">
+  <section class="auth-card auth-card--wide">
+    <a routerLink="/welcome" class="mini-link">← Choose another workspace</a>
+    <div class="auth-brand">
+      <span class="brand-mark">CF</span>
+      <div><strong>Create account</strong><p>Fields change based on selected workspace.</p></div>
+    </div>
+    <div class="persona-tabs">
+      <button type="button" [class.active]="selected === 'student'" (click)="selectPersona('student')"><b>Student</b><small>Admission details required</small></button>
+      <button type="button" [class.active]="selected === 'department'" (click)="selectPersona('department')"><b>Department</b><small>Linked to one department</small></button>
+      <button type="button" [class.active]="selected === 'admin'" (click)="selectPersona('admin')"><b>Admin</b><small>System management account</small></button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="form-grid two">
+        <label>Name <span class="required">*</span><input formControlName="name" placeholder="Full name" [class.invalid]="fieldError('name')" />@if(fieldError('name')){<small>{{fieldError('name')}}</small>}</label>
+        <label>Email <span class="required">*</span><input type="email" formControlName="email" placeholder="name@college.edu" [class.invalid]="fieldError('email')" />@if(fieldError('email')){<small>{{fieldError('email')}}</small>}</label>
+        <label>Password <span class="required">*</span><input type="password" formControlName="password" placeholder="Minimum 4 characters" [class.invalid]="fieldError('password')" />@if(fieldError('password')){<small>{{fieldError('password')}}</small>}</label>
+        @if (selected !== 'admin') {
+          <label>Department <span class="required">*</span><select formControlName="departmentId" [class.invalid]="fieldError('departmentId')" [disabled]="loadingLookups"><option [ngValue]="null">Select department</option>@for(dept of departments; track dept.id){<option [ngValue]="dept.id">{{ dept.name }} ({{ dept.code }})</option>}</select>@if(fieldError('departmentId')){<small>{{fieldError('departmentId')}}</small>}</label>
+        }
+        @if (selected === 'student') {
+          <label>Branch <span class="required">*</span><select formControlName="branch" [class.invalid]="fieldError('branch')"><option value="">Select branch</option>@for(branch of branches; track branch){<option [value]="branch">{{ branch }}</option>}</select>@if(fieldError('branch')){<small>{{fieldError('branch')}}</small>}</label>
+          <label>Admission year <span class="required">*</span><input type="number" formControlName="admissionYear" [placeholder]="currentYear.toString()" [class.invalid]="fieldError('admissionYear')" />@if(fieldError('admissionYear')){<small>{{fieldError('admissionYear')}}</small>}</label>
+          <label class="span-2">Roll number <span class="required">*</span><input formControlName="rollNumber" placeholder="College roll number" [class.invalid]="fieldError('rollNumber')" />@if(fieldError('rollNumber')){<small>{{fieldError('rollNumber')}}</small>}</label>
+        }
+      </div>
+      @if(errorMessage){<div class="alert error">{{ errorMessage }}</div>}
+      <button class="btn primary full" [disabled]="loading || loadingLookups">{{ loading ? 'Creating account...' : 'Create ' + selected + ' account' }}</button>
+    </form>
+    <p class="auth-link">Already registered? <a [routerLink]="['/login']" [queryParams]="{ type: selected }">Back to sign in</a></p>
+  </section>
+</main>

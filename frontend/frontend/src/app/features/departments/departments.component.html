@@ -1,0 +1,72 @@
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin workspace</span>
+    <h2>Department management</h2>
+    <p>Create and maintain approval desks used by student request routing and department officer accounts.</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search departments" [value]="search" (input)="search=$any($event.target).value" />
+    <button class="btn primary" type="button" (click)="openCreate()">Add Department</button>
+    <button class="btn ghost" type="button" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<div class="metric-strip">
+  <article><strong>{{ departments.length }}</strong><span>Total departments</span></article>
+  <article><strong>{{ filtered.length }}</strong><span>Visible</span></article>
+  <article><strong>Admin</strong><span>CRUD enabled</span></article>
+</div>
+
+<section class="panel elevated">
+  <div class="panel-title"><div><h3>Approval desks</h3><p>Departments that can be linked to officer accounts.</p></div></div>
+  @if (loading) {
+    <div class="empty-state"><strong>Loading departments</strong></div>
+  } @else if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Actions</th></tr></thead>
+        <tbody>
+          @for (department of filtered; track department.id) {
+            <tr>
+              <td><b>{{ department.name }}</b><small class="subtext">ID: {{ department.id }}</small></td>
+              <td><span class="badge neutral">{{ department.code }}</span></td>
+              <td>{{ department.description || '-' }}</td>
+              <td><div class="actions"><button class="btn small ghost" type="button" (click)="openEdit(department)">Edit</button><button class="btn small danger" type="button" (click)="remove(department)">Delete</button></div></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><strong>No departments</strong><p>Create the first department to enable routing.</p></div>
+  }
+</section>
+
+@if (showPanel) {
+  <div class="modal-backdrop" (click)="showPanel = false"></div>
+  <aside class="side-panel">
+    <div class="side-panel__head">
+      <div><h3>{{ editing ? 'Edit department' : 'New department' }}</h3><p>Use short, clear names like Finance, Library, Academics.</p></div>
+      <button class="icon-btn" type="button" (click)="showPanel = false">x</button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+      <label>Name <span class="required">*</span>
+        <input formControlName="name" [class.invalid]="fieldError('name')" placeholder="Department name" />
+        @if (fieldError('name')) { <small>{{ fieldError('name') }}</small> }
+      </label>
+      <label>Code <span class="required">*</span>
+        <input formControlName="code" [class.invalid]="fieldError('code')" placeholder="Short code" />
+        @if (fieldError('code')) { <small>{{ fieldError('code') }}</small> }
+      </label>
+      <label>Description<textarea formControlName="description" rows="4" placeholder="What this department approves"></textarea></label>
+      <div class="panel-actions"><button type="button" class="btn ghost" (click)="showPanel = false">Cancel</button><button class="btn primary" [disabled]="saving">{{ saving ? 'Saving...' : 'Save department' }}</button></div>
+    </form>
+  </aside>
+}
+
+<app-confirm-dialog
+  [open]="!!pendingDelete"
+  title="Delete department"
+  [message]="'Delete ' + (pendingDelete?.name || 'this department') + '?'"
+  (confirm)="confirmDelete()"
+  (cancel)="pendingDelete = null" />

@@ -1,0 +1,36 @@
+<main class="auth-page auth-page--single">
+  <section class="auth-card auth-card--wide">
+    <a routerLink="/welcome" class="mini-link">Back to workspaces</a>
+    <div class="auth-brand">
+      <span class="brand-mark">CF</span>
+      <div>
+        <strong>Sign in to CampusFlow</strong>
+        <p>Select your correct workspace before login.</p>
+      </div>
+    </div>
+
+    <div class="persona-tabs">
+      @for (persona of personas; track persona.key) {
+        <button type="button" [class.active]="selected === persona.key" (click)="selectPersona(persona.key)">
+          <b>{{ persona.label }}</b><small>{{ persona.helper }}</small>
+        </button>
+      }
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="form-grid">
+        <label>Email <span class="required">*</span>
+          <input type="email" formControlName="email" placeholder="name@college.edu" [class.invalid]="fieldError('email')" autocomplete="email" />
+          @if (fieldError('email')) { <small>{{ fieldError('email') }}</small> }
+        </label>
+        <label>Password <span class="required">*</span>
+          <input type="password" formControlName="password" placeholder="Your password" [class.invalid]="fieldError('password')" autocomplete="current-password" />
+          @if (fieldError('password')) { <small>{{ fieldError('password') }}</small> }
+        </label>
+      </div>
+      @if (errorMessage) { <div class="alert error">{{ errorMessage }}</div> }
+      <button type="submit" class="btn primary full" [disabled]="loading">{{ loading ? 'Signing in...' : 'Sign in as ' + selected }}</button>
+    </form>
+    <p class="auth-link">No account? <a [routerLink]="['/register']" [queryParams]="{ type: selected }">Create {{ selected }} account</a></p>
+  </section>
+</main>

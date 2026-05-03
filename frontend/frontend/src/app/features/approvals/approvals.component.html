@@ -1,0 +1,76 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Department queue</p>
+    <h2>{{ currentUser?.department || 'Department' }} approvals</h2>
+    <p>Approve, reject, or hold only the request items routed to your department.</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search request or student" [value]="search" (input)="search=$any($event.target).value" />
+    <button class="btn ghost" type="button" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<section class="metric-strip">
+  <article><strong>{{ queue.length }}</strong><span>Total assigned</span></article>
+  <article><strong>{{ pendingCount }}</strong><span>Pending queue</span></article>
+  <article><strong>{{ delayedCount }}</strong><span>Delayed requests</span></article>
+</section>
+
+<section class="panel">
+  <div class="panel-title">
+    <div>
+      <h3>Assigned requests</h3>
+      <p>{{ visible.length }} requests visible</p>
+    </div>
+    <div class="segmented">
+      @for (status of ['IN_REVIEW', 'ON_HOLD', 'APPROVED', 'REJECTED', 'ALL']; track status) {
+        <button type="button" [class.active]="statusFilter === status" (click)="statusFilter = status">{{ status.replace('_', ' ') }}</button>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="approval-grid">
+      <article class="approval-card"><span class="skeleton"></span><h3 class="skeleton"></h3><p class="skeleton"></p></article>
+      <article class="approval-card"><span class="skeleton"></span><h3 class="skeleton"></h3><p class="skeleton"></p></article>
+    </div>
+  } @else if (!visible.length) {
+    <div class="empty-state"><strong>No assigned requests</strong><p>Your department queue is clear for the selected filter.</p></div>
+  } @else {
+    <div class="approval-grid">
+      @for (item of visible; track item.request.id) {
+        <article class="approval-card">
+          <div class="approval-card__top">
+            <app-status-badge [status]="item.approval?.status || item.request.status" />
+            @if (item.request.delayed) { <span class="badge danger">DELAYED</span> }
+          </div>
+          <h3>{{ item.request.title }}</h3>
+          <p>{{ item.request.requesterName }} · {{ item.request.requestNumber }}</p>
+          <div class="approval-meta">
+            <span>Overall<b>{{ item.request.status.replace('_', ' ') }}</b></span>
+            <span>Expected<b>{{ item.request.expectedCompletionTime | date:'mediumDate' }}</b></span>
+          </div>
+          <p class="remark">{{ item.approval?.remarks || 'No department remark yet.' }}</p>
+          <div class="actions">
+            <a class="btn ghost" [routerLink]="['/department/requests', item.request.id]">Details</a>
+            @if (canAct(item)) {
+              <button class="btn success" type="button" (click)="openDecision(item, 'approve')">Approve</button>
+              <button class="btn warning" type="button" (click)="openDecision(item, 'hold')">Hold</button>
+              <button class="btn danger" type="button" (click)="openDecision(item, 'reject')">Reject</button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+<app-remark-dialog
+  [open]="!!activeItem && !!decision"
+  [saving]="saving"
+  [title]="activeItem?.request?.title || ''"
+  [description]="'Add a clear remark for ' + (currentUser?.department || 'your department') + ' before saving.'"
+  [actionLabel]="decision || ''"
+  [remarks]="remarks"
+  (save)="saveDecision($event)"
+  (cancel)="closeDecision()" />

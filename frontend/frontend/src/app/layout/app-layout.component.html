@@ -1,0 +1,107 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" [routerLink]="authService.getHomeRoute(currentUser?.role)">
+      <span class="brand-mark">CF</span>
+      <span>
+        <strong>CampusFlow</strong>
+        <small>{{ workspaceTitle }}</small>
+      </span>
+    </a>
+
+    <nav class="nav-stack">
+      @for (item of navItems; track item.label) {
+        <a [routerLink]="item.path" routerLinkActive="active">
+          <span class="nav-icon">{{ item.icon }}</span>
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-card">
+      <span>Logged in as</span>
+      <strong>{{ roleLabel }}</strong>
+      <small>@if (currentUser?.role === 'OFFICER') { {{ currentUser?.department || 'No department assigned' }} } @else { Role-based workflow workspace }</small>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{{ roleLabel }}</p>
+        <h1>{{ workspaceTitle }}</h1>
+      </div>
+
+      <div class="top-actions">
+        @if (currentUser?.role === 'STUDENT') {
+          <button class="btn primary" type="button" (click)="createQuickRequest()">Start request</button>
+        }
+
+        <div class="menu-wrap">
+          <button class="icon-button" type="button" (click)="toggleNotifications($event)" aria-label="Open notifications">
+            N
+            @if (unreadCount) { <span class="dot">{{ unreadCount }}</span> }
+          </button>
+          @if (showNotifications) {
+            <div class="dropdown notifications" (click)="$event.stopPropagation()">
+              <div class="dropdown-head">
+                <strong>Notifications</strong>
+                <button type="button" class="link-button" (click)="markAllRead()">Mark all read</button>
+              </div>
+              @if (notificationsLoading) {
+                <article class="notification blue">
+                  <span></span>
+                  <div><b>Loading updates</b><p>Checking workflow activity.</p><small>Now</small></div>
+                </article>
+              } @else {
+                @for (notification of notifications; track notification.id) {
+                  <article class="notification" [class]="notificationTone(notification)" [class.unread]="!notification.read" (click)="markRead(notification)">
+                    <span></span>
+                    <div>
+                      <b>{{ notification.title }}</b>
+                      <p>{{ notification.message }}</p>
+                      <small>{{ notification.createdAt | date:'medium' }}</small>
+                    </div>
+                  </article>
+                } @empty {
+                  <article class="notification blue">
+                    <span></span>
+                    <div><b>No updates yet</b><p>Workflow activity will appear here.</p><small>Now</small></div>
+                  </article>
+                }
+              }
+            </div>
+          }
+        </div>
+
+        <div class="menu-wrap">
+          <button class="profile-chip" type="button" (click)="toggleProfile($event)">
+            <span class="avatar">{{ initials }}</span>
+            <span class="profile-text">
+              <strong>{{ currentUser?.name || 'User' }}</strong>
+              <small>{{ roleLabel }}</small>
+            </span>
+          </button>
+          @if (showProfile) {
+            <div class="dropdown profile" (click)="$event.stopPropagation()">
+              <div class="profile-card">
+                <span class="avatar large">{{ initials }}</span>
+                <h3>{{ currentUser?.name || 'User' }}</h3>
+                <p>{{ currentUser?.email || 'user@campusflow.com' }}</p>
+              </div>
+              <dl>
+                <div><dt>Role</dt><dd>{{ roleLabel }}</dd></div>
+                <div><dt>Department</dt><dd>{{ currentUser?.department || 'Not assigned' }}</dd></div>
+                <div><dt>User ID</dt><dd>{{ currentUser?.id || '-' }}</dd></div>
+              </dl>
+              <button class="logout" type="button" (click)="logout()">Logout</button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="page-wrap">
+      <router-outlet />
+    </main>
+  </section>
+</div>

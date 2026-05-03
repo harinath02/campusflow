@@ -1,0 +1,64 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">{{ pageEyebrow }}</p>
+    <h2>{{ pageTitle }}</h2>
+    <p>{{ pageDescription }}</p>
+  </div>
+  <div class="head-actions">
+    <input class="search-field" placeholder="Search requests" [value]="search" (input)="search=$any($event.target).value" />
+    @if (isStudent) { <a class="btn primary" routerLink="/student/requests/new">Create Request</a> }
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-title">
+    <div>
+      <h3>@if (isStudent) { Request history } @else { Request queue }</h3>
+      <p>{{ filtered.length }} visible requests</p>
+    </div>
+    <div class="filters">
+      <select [value]="statusFilter" (change)="statusFilter=$any($event.target).value">
+        @for (status of statuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+      <select [value]="typeFilter" (change)="typeFilter=$any($event.target).value">
+        <option value="">All types</option>
+        @for (type of requestTypes; track type.id) {
+          <option [value]="type.id">{{ type.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="request-grid">
+      <article class="request-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+      <article class="request-card"><span class="skeleton"></span><strong class="skeleton"></strong><small class="skeleton"></small></article>
+    </div>
+  } @else if (!filtered.length) {
+    <div class="empty-state">
+      <strong>No requests found</strong>
+      <p>@if (isStudent) { Create a request or adjust the selected filters. } @else { No workflow items match the selected filters. }</p>
+      @if (isStudent) { <a class="btn primary" routerLink="/student/requests/new">Create Request</a> }
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Request</th><th>@if (!isStudent) { Requester } @else { Type }</th><th>Status</th><th>SLA</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+          @for (request of filtered; track request.id) {
+            <tr>
+              <td><strong>{{ request.title }}</strong><small class="subtext">{{ request.requestNumber }}</small></td>
+              <td>@if (!isStudent) { {{ request.requesterName }} <small class="subtext">{{ request.requestType }}</small> } @else { {{ request.requestType }} }</td>
+              <td><app-status-badge [status]="request.status" /></td>
+              <td>@if (request.delayed) { <span class="badge danger">DELAYED</span> } @else { <span class="badge success">ON TIME</span> }</td>
+              <td>{{ request.createdAt | date:'mediumDate' }}</td>
+              <td><a class="btn ghost small" [routerLink]="detailLink(request)">View details</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
