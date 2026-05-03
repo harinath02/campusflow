@@ -40,8 +40,8 @@ Update `src/main/resources/application.yml` if your local credentials differ:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/campusflow
-    username: postgres
-    password: postgres
+    username: username
+    password: password
 ```
 
 The app currently uses `spring.jpa.hibernate.ddl-auto=update` for local development.
