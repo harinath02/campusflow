@@ -1,0 +1,61 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "typescript-standard",
+      "pattern": [
+        {
+          "regexp": "^([^\\s].*\\.(ts|tsx|js|jsx))\\(([0-9]+),([0-9]+)\\): error (TS[0-9]+): (.*)$",
+          "file": 1,
+          "line": 3,
+          "column": 4,
+          "message": 6
+        }
+      ]
+    },
+    {
+      "owner": "angular-legacy",
+      "pattern": [
+        {
+          "regexp": "^Error: ([^:]+\\.(ts|tsx|js|jsx|html|scss|css)):([0-9]+):([0-9]+) - error ([^:]+): (.*)$",
+          "file": 1,
+          "line": 3,
+          "column": 4,
+          "message": 6
+        }
+      ]
+    },
+    {
+      "owner": "angular-esbuild",
+      "pattern": [
+        {
+          "regexp": "^.*\\[ERROR\\]\\s+(.*)$",
+          "message": 1
+        },
+        {
+          "regexp": "^$"
+        },
+        {
+          "regexp": "^\\s+([^:]+\\.(ts|tsx|js|jsx|html|scss|css)):([0-9]+):([0-9]+):.*$",
+          "file": 1,
+          "line": 3,
+          "column": 4
+        }
+      ]
+    },
+    {
+      "owner": "vitest",
+      "pattern": [
+        {
+          "regexp": "^(AssertionError|TypeError|ReferenceError|Error):\\s*(.*)$",
+          "message": 0
+        },
+        {
+          "regexp": "^\\s*[^A-Za-z0-9\\s]\\s+([^\\s]+\\.(ts|tsx|js|jsx|html)):([0-9]+):([0-9]+).*$",
+          "file": 1,
+          "line": 3,
+          "column": 4
+        }
+      ]
+    }
+  ]
+}

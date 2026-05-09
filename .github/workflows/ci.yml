@@ -51,14 +51,36 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Register backend error matcher
+        run: echo "::add-matcher::${GITHUB_WORKSPACE}/.github/problem-matchers/java-maven.json"
+
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
       - name: Run backend tests
-        run: ./mvnw -B test
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          ./mvnw -B test 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/backend-tests.log"
 
       - name: Build backend package
-        run: ./mvnw -B package -DskipTests
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          ./mvnw -B package -DskipTests 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/backend-package.log"
+
+      - name: Show backend failure details
+        if: failure()
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/summarize-ci-failure.sh" backend "${GITHUB_WORKSPACE}/ci-logs/backend-*.log"
+
+      - name: Upload backend failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-failure-logs
+          path: ci-logs/backend-*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
@@ -87,14 +109,39 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Register frontend error matcher
+        run: echo "::add-matcher::${GITHUB_WORKSPACE}/.github/problem-matchers/angular-typescript.json"
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          npm ci 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-install.log"
 
       - name: Run frontend tests
-        run: npm test -- --watch=false --progress=false
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          npm test -- --watch=false --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-tests.log"
 
       - name: Build frontend
-        run: npm run build -- --progress=false
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          npm run build -- --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-build.log"
+
+      - name: Show frontend failure details
+        if: failure()
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/summarize-ci-failure.sh" frontend "${GITHUB_WORKSPACE}/ci-logs/frontend-*.log"
+
+      - name: Upload frontend failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-failure-logs
+          path: ci-logs/frontend-*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v4
