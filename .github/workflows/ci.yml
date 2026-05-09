@@ -54,6 +54,9 @@ jobs:
       - name: Register backend error matcher
         run: echo "::add-matcher::${GITHUB_WORKSPACE}/.github/problem-matchers/java-maven.json"
 
+      - name: Verify backend entry point
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/check-entrypoints.sh" backend
+
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
@@ -70,11 +73,11 @@ jobs:
           ./mvnw -B package -DskipTests 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/backend-package.log"
 
       - name: Show backend failure details
-        if: failure()
+        if: failure() && hashFiles('ci-logs/backend-*.log') != ''
         run: bash "${GITHUB_WORKSPACE}/.github/scripts/summarize-ci-failure.sh" backend "${GITHUB_WORKSPACE}/ci-logs/backend-*.log"
 
       - name: Upload backend failure logs
-        if: failure()
+        if: failure() && hashFiles('ci-logs/backend-*.log') != ''
         uses: actions/upload-artifact@v4
         with:
           name: backend-failure-logs
@@ -112,6 +115,9 @@ jobs:
       - name: Register frontend error matcher
         run: echo "::add-matcher::${GITHUB_WORKSPACE}/.github/problem-matchers/angular-typescript.json"
 
+      - name: Verify frontend entry point
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/check-entrypoints.sh" frontend
+
       - name: Install dependencies
         run: |
           set -o pipefail
@@ -131,11 +137,11 @@ jobs:
           npm run build -- --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-build.log"
 
       - name: Show frontend failure details
-        if: failure()
+        if: failure() && hashFiles('ci-logs/frontend-*.log') != ''
         run: bash "${GITHUB_WORKSPACE}/.github/scripts/summarize-ci-failure.sh" frontend "${GITHUB_WORKSPACE}/ci-logs/frontend-*.log"
 
       - name: Upload frontend failure logs
-        if: failure()
+        if: failure() && hashFiles('ci-logs/frontend-*.log') != ''
         uses: actions/upload-artifact@v4
         with:
           name: frontend-failure-logs

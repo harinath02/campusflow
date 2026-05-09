@@ -73,7 +73,16 @@ if [[ ${#logs[@]} -eq 0 ]]; then
 fi
 
 error_lines_file="$(mktemp)"
+hints_file="$(mktemp)"
 annotation_count=0
+
+add_hint() {
+  local hint="$1"
+
+  if ! grep -Fxq "$hint" "$hints_file"; then
+    printf '%s\n' "$hint" >> "$hints_file"
+  fi
+}
 
 for log in "${logs[@]}"; do
   pending_frontend_message=""
@@ -81,47 +90,67 @@ for log in "${logs[@]}"; do
   while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ "$component" == "backend" ]]; then
       if [[ "$line" =~ ^\[ERROR\]\ (.+\.java):\[([0-9]+),([0-9]+)\]\ (.+)$ ]]; then
-        emit_error "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}"
+        message="${BASH_REMATCH[4]}"
+        emit_error "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "$message Hint: open this file and fix the Java compiler error shown here."
         annotation_count=$((annotation_count + 1))
+        add_hint "Java compiler error: open the annotated `.java` file and fix the symbol, type, syntax, or import shown in the message."
       elif [[ "$line" =~ ^\[ERROR\][[:space:]]+([A-Za-z0-9_]+)\.[^:]+:([0-9]+)[[:space:]]+(.+)$ ]]; then
         source_file="$(find_java_source "${BASH_REMATCH[1]}")"
         if [[ -n "$source_file" ]]; then
-          emit_error "$source_file" "${BASH_REMATCH[2]}" 1 "${BASH_REMATCH[3]}"
+          emit_error "$source_file" "${BASH_REMATCH[2]}" 1 "${BASH_REMATCH[3]} Hint: inspect this failing test location and the stack trace above it."
           annotation_count=$((annotation_count + 1))
+          add_hint "Backend test failure: inspect the annotated test/source line and the stack trace in `backend-tests.log`."
         fi
+      elif [[ "$line" == *"Unable to find main class"* ]]; then
+        emit_error "backend/src/main/java/com/campusflow/Application.java" 1 "Spring Boot could not find the application main class. Hint: restore an active public static void main(String[] args) that calls SpringApplication.run(Application.class, args); do not leave it commented out."
+        annotation_count=$((annotation_count + 1))
+        add_hint "Backend packaging error: Spring Boot cannot repackage the JAR without an active main method in `Application.java`."
+      elif [[ "$line" == *"Failed to execute goal org.springframework.boot:spring-boot-maven-plugin"* ]]; then
+        add_hint "Spring Boot Maven plugin failed during packaging. Check the exact plugin message above; for `Unable to find main class`, restore the `main` method in `Application.java`."
+      elif [[ "$line" == *"Failed to execute goal"* ]]; then
+        add_hint "Maven goal failed. Check the first `[ERROR]` line above this message; it usually contains the real cause."
       fi
     fi
 
     if [[ "$component" == "frontend" ]]; then
       if [[ "$line" =~ ^Error:\ ([^:]+\.(ts|tsx|js|jsx|html|scss|css)):([0-9]+):([0-9]+)\ -\ error\ ([^:]+):\ (.+)$ ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}: ${BASH_REMATCH[6]}"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}: ${BASH_REMATCH[6]} Hint: fix the Angular/TypeScript error at this location."
         annotation_count=$((annotation_count + 1))
+        add_hint "Frontend compiler error: open the annotated TypeScript/template/style file and fix the reported Angular/TypeScript error."
       elif [[ "$line" =~ ^([^[:space:]].*\.(ts|tsx|js|jsx))\(([0-9]+),([0-9]+)\):\ error\ (TS[0-9]+):\ (.+)$ ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}: ${BASH_REMATCH[6]}"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}: ${BASH_REMATCH[6]} Hint: fix this TypeScript error before rebuilding."
         annotation_count=$((annotation_count + 1))
+        add_hint "TypeScript error: open the annotated file and fix the reported `TS...` diagnostic."
+      elif [[ "$line" == *"bootstrapApplication"* || "$line" == *"main.ts"* && "$line" == *"error"* ]]; then
+        add_hint "Frontend startup error: `frontend/src/main.ts` should actively call `bootstrapApplication(AppComponent, appConfig)`."
       elif [[ "$line" =~ \[ERROR\][[:space:]]+(.+) ]]; then
         pending_frontend_message="${BASH_REMATCH[1]}"
       elif [[ "$line" =~ ^(AssertionError|TypeError|ReferenceError|Error):[[:space:]]*(.+)$ ]]; then
         pending_frontend_message="${BASH_REMATCH[1]}: ${BASH_REMATCH[2]}"
       elif [[ -n "$pending_frontend_message" && "$line" =~ ^[[:space:]]+([^[:space:]:]+\.(ts|tsx|js|jsx|html|scss|css)):([0-9]+):([0-9]+): ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message Hint: fix the error at this location."
         annotation_count=$((annotation_count + 1))
+        add_hint "Frontend build/test error: open the annotated file and fix the failing line."
         pending_frontend_message=""
       elif [[ -n "$pending_frontend_message" && "$line" =~ ^([^[:space:]]+\.(scss|css))[[:space:]]+([0-9]+):([0-9]+)[[:space:]] ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message Hint: fix the style error at this location."
         annotation_count=$((annotation_count + 1))
+        add_hint "Style build error: open the annotated SCSS/CSS file and fix the syntax or import issue."
         pending_frontend_message=""
       elif [[ -n "$pending_frontend_message" && "$line" =~ ^[[:space:]]*[^[:alnum:][:space:]][[:space:]]+([^[:space:]]+\.(ts|tsx|js|jsx|html)):([0-9]+):([0-9]+) ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message Hint: fix the failing test or source line."
         annotation_count=$((annotation_count + 1))
+        add_hint "Vitest failure: open the annotated file and inspect the failed assertion or thrown error."
         pending_frontend_message=""
       elif [[ -n "$pending_frontend_message" && "$line" =~ ^[[:space:]]*at[[:space:]]+([^[:space:]]+\.(ts|tsx|js|jsx|html)):([0-9]+):([0-9]+) ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message Hint: fix the failing test or source line."
         annotation_count=$((annotation_count + 1))
+        add_hint "Vitest failure: open the annotated file and inspect the failed assertion or thrown error."
         pending_frontend_message=""
       elif [[ -n "$pending_frontend_message" && "$line" =~ ^.*\(([^()]+\.(ts|tsx|js|jsx|html)):([0-9]+):([0-9]+)\)$ ]]; then
-        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message"
+        emit_error "frontend/${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "$pending_frontend_message Hint: fix the failing test or source line."
         annotation_count=$((annotation_count + 1))
+        add_hint "Vitest failure: open the annotated file and inspect the failed assertion or thrown error."
         pending_frontend_message=""
       fi
     fi
@@ -142,6 +171,14 @@ done
     printf '```text\n'
     cat "$error_lines_file"
     printf '```\n\n'
+  fi
+
+  if [[ -s "$hints_file" ]]; then
+    printf '### Fix Hints\n\n'
+    while IFS= read -r hint; do
+      printf '- %s\n' "$hint"
+    done < "$hints_file"
+    printf '\n'
   fi
 
   printf '### Last Log Lines\n\n'
