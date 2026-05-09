@@ -4,6 +4,7 @@ set -euo pipefail
 workspace="${GITHUB_WORKSPACE:-$(pwd)}"
 target="${1:-all}"
 failed=0
+details_file="$(mktemp)"
 
 escape_annotation() {
   local value="$1"
@@ -19,6 +20,15 @@ emit_error() {
   local message="$3"
 
   printf '::error file=%s,line=%s::%s\n' "$file" "$line" "$(escape_annotation "$message")"
+  printf '%s|%s|%s\n' "$file" "$line" "$message" >> "$details_file"
+
+  printf '\n'
+  printf '%s\n' 'CI ERROR DETAIL'
+  printf '%s\n' '---------------'
+  printf 'File: %s\n' "$file"
+  printf 'Line: %s\n' "$line"
+  printf 'Message: %s\n' "$message"
+  printf '\n'
 }
 
 find_uncommented_line() {
@@ -92,6 +102,14 @@ if [[ "$failed" -ne 0 ]]; then
   {
     printf '## Entrypoint checks failed\n\n'
     printf 'The workflow found startup-code problems before running the heavier build commands.\n\n'
+    printf '### Exact Error Locations\n\n'
+    printf '| File | Line | Error and Fix Hint |\n'
+    printf '| --- | ---: | --- |\n'
+    while IFS='|' read -r file line message; do
+      message="${message//|/ }"
+      printf '| `%s` | %s | %s |\n' "$file" "$line" "$message"
+    done < "$details_file"
+    printf '\n'
     printf '### Hints\n\n'
     if [[ "$target" == "all" || "$target" == "backend" ]]; then
       printf '%s\n' '- Backend: `backend/src/main/java/com/campusflow/Application.java` must contain an active `public static void main(String[] args)` calling `SpringApplication.run(Application.class, args);`.'

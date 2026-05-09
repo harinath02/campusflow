@@ -53,8 +53,21 @@ emit_error() {
   local line="$2"
   local column="$3"
   local message="$4"
+  local display_file=""
 
   file="$(normalize_file "$file")"
+  display_file="$file"
+  printf '%s|%s|%s|%s\n' "${display_file:-unknown}" "${line:-1}" "${column:-1}" "$message" >> "$annotations_file"
+
+  printf '\n'
+  printf '%s\n' 'CI ERROR DETAIL'
+  printf '%s\n' '---------------'
+  printf 'File: %s\n' "${display_file:-unknown}"
+  printf 'Line: %s\n' "${line:-1}"
+  printf 'Column: %s\n' "${column:-1}"
+  printf 'Message: %s\n' "$message"
+  printf '\n'
+
   message="$(escape_annotation "$message")"
 
   if [[ -n "$file" ]]; then
@@ -74,6 +87,7 @@ fi
 
 error_lines_file="$(mktemp)"
 hints_file="$(mktemp)"
+annotations_file="$(mktemp)"
 annotation_count=0
 
 add_hint() {
@@ -166,6 +180,17 @@ done
   printf 'Generated %s file-level error annotation(s). Open the **Annotations** area in this check for clickable file and line links.\n\n' "$annotation_count"
   printf 'Full command logs are uploaded as the `%s-failure-logs` artifact.\n\n' "$component"
 
+  if [[ -s "$annotations_file" ]]; then
+    printf '### Exact Error Locations\n\n'
+    printf '| File | Line | Column | Error and Fix Hint |\n'
+    printf '| --- | ---: | ---: | --- |\n'
+    while IFS='|' read -r file line column message; do
+      message="${message//|/ }"
+      printf '| `%s` | %s | %s | %s |\n' "$file" "$line" "$column" "$message"
+    done < "$annotations_file"
+    printf '\n'
+  fi
+
   if [[ -s "$error_lines_file" ]]; then
     printf '### Error Lines\n\n'
     printf '```text\n'
@@ -176,7 +201,7 @@ done
   if [[ -s "$hints_file" ]]; then
     printf '### Fix Hints\n\n'
     while IFS= read -r hint; do
-      printf '- %s\n' "$hint"
+      printf '%s\n' "- $hint"
     done < "$hints_file"
     printf '\n'
   fi
