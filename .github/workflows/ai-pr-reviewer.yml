@@ -1,0 +1,172 @@
+name: PR Reviewer
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: ai-pr-reviewer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-review:
+    name: Frontend review comments
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint review comments
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workdir: frontend
+          reporter: github-pr-review
+          filter_mode: added
+          fail_level: none
+          eslint_flags: "src/**/*.{ts,tsx,js,jsx}"
+
+  backend-review:
+    name: Backend review comments
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Make Maven wrapper executable
+        run: chmod +x ./mvnw
+
+      - name: Run backend tests
+        run: ./mvnw -B test
+
+      - name: Run Checkstyle if configured
+        run: |
+          if grep -q "maven-checkstyle-plugin" pom.xml; then
+            ./mvnw -B checkstyle:checkstyle
+          else
+            echo "Checkstyle is not configured. Skipping."
+          fi
+
+  pr-summary:
+    name: PR review summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - frontend-review
+      - backend-review
+    if: always()
+
+    steps:
+      - name: Post PR review summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const backend = "${{ needs.backend-review.result }}";
+            const frontend = "${{ needs.frontend-review.result }}";
+
+            const verdict =
+              backend === "success" && frontend === "success"
+                ? "Approve with comments"
+                : "Request changes";
+
+            const body = `<!-- ai-pr-reviewer -->
+
+            # AI PR Review Summary
+
+            ## Summary
+            Automated AI PR review completed using GitHub Actions, Maven checks, frontend lint review, and repository checks.
+
+            ## Strengths
+            - PR is automatically checked without paid OpenAI API usage.
+            - Backend tests are executed.
+            - Frontend lint findings are reported on changed lines where available.
+            - This workflow can run fully inside GitHub Actions.
+
+            ## Issues Found
+            ${backend !== "success" ? "- Backend review checks failed. Please inspect the backend job logs.\\n" : ""}
+            ${frontend !== "success" ? "- Frontend review checks failed. Please inspect the frontend job logs.\\n" : ""}
+
+            ## Missing Tests
+            - This AI reviewer cannot deeply reason like an LLM.
+            - Keep backend/frontend unit tests strong.
+            - Add CodeQL and Dependency Review for security coverage.
+
+            ## Recommendations
+            - Fix all CI failures before merge.
+            - Keep PR title and branch name checks required.
+            - Use CodeQL and Dependency Review as additional free quality gates.
+            - Use AI review only later if GitHub Models or paid API quota is available.
+
+            ## Final Verdict
+            **${verdict}**
+            `;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100
+            });
+
+            const existing = comments.data.find(comment =>
+              comment.body && comment.body.includes("<!-- AI-pr-reviewer -->")
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body
+              });
+            }
