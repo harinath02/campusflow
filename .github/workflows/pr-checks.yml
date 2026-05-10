@@ -1,0 +1,53 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate conventional PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR title: $PR_TITLE"
+
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|ci|build|perf|security)(\(.+\))?:\ .+ ]]; then
+            echo "Invalid PR title."
+            echo "Use format: feat: add login page"
+            echo "Allowed types: feat, fix, docs, style, refactor, test, chore, ci, build, perf, security"
+            exit 1
+          fi
+
+  branch-name:
+    name: Validate branch name
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate branch naming
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          echo "Branch name: $BRANCH_NAME"
+
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|fix|bugfix|hotfix|chore|docs|ci|refactor|test)/[a-z0-9._-]+$ ]]; then
+            echo "Invalid branch name."
+            echo "Use format: feature/add-login-page"
+            exit 1
+          fi
