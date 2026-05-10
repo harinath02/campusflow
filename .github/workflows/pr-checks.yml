@@ -15,7 +15,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  pr-title:
+  validate-pr-title:
     name: Validate PR title
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -29,12 +29,12 @@ jobs:
 
           if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|ci|build|perf|security)(\(.+\))?:\ .+ ]]; then
             echo "Invalid PR title."
-            echo "Use format: feat: add login page"
+            echo "Use format: ci: add GitHub Actions workflow"
             echo "Allowed types: feat, fix, docs, style, refactor, test, chore, ci, build, perf, security"
             exit 1
           fi
 
-  branch-name:
+  validate-branch-name:
     name: Validate branch name
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -46,8 +46,8 @@ jobs:
         run: |
           echo "Branch name: $BRANCH_NAME"
 
-          if [[ ! "$BRANCH_NAME" =~ ^(feature|fix|bugfix|hotfix|chore|docs|ci|refactor|test)/[a-z0-9._-]+$ ]]; then
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|feat|fix|bugfix|hotfix|chore|docs|ci|refactor|test)/[a-z0-9._-]+$ ]]; then
             echo "Invalid branch name."
-            echo "Use format: feature/add-login-page"
+            echo "Use format: feature/add-login-page or ci/add-pr-workflows"
             exit 1
           fi
