@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +22,7 @@ jobs:
   backend:
     name: Backend checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -39,6 +42,15 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    env:
+      SPRING_PROFILES_ACTIVE: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: campusflow
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: test-secret-key-for-ci-only-change-in-production
 
     steps:
       - name: Checkout repository
@@ -60,6 +72,9 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Validate Maven project
+        run: ./mvnw -B validate
+
       - name: Run backend tests
         run: |
           set -o pipefail
@@ -71,6 +86,12 @@ jobs:
           set -o pipefail
           mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
           ./mvnw -B package -DskipTests 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/backend-package.log"
+
+      - name: Run backend verify
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          ./mvnw -B verify 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/backend-verify.log"
 
       - name: Show backend failure details
         if: failure() && hashFiles('ci-logs/backend-*.log') != ''
@@ -86,6 +107,7 @@ jobs:
           retention-days: 7
 
       - name: Upload backend artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
@@ -96,6 +118,7 @@ jobs:
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     defaults:
       run:
@@ -124,17 +147,23 @@ jobs:
           mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
           npm ci 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-install.log"
 
+      - name: Run frontend lint
+        run: |
+          set -o pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
+          npm run lint --if-present 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-lint.log"
+
       - name: Run frontend tests
         run: |
           set -o pipefail
           mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
-          npm test -- --watch=false --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-tests.log"
+          npm test -- --watch=false --browsers=ChromeHeadless --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-tests.log"
 
       - name: Build frontend
         run: |
           set -o pipefail
           mkdir -p "${GITHUB_WORKSPACE}/ci-logs"
-          npm run build -- --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-build.log"
+          npm run build -- --configuration production --progress=false 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/frontend-build.log"
 
       - name: Show frontend failure details
         if: failure() && hashFiles('ci-logs/frontend-*.log') != ''
@@ -150,9 +179,32 @@ jobs:
           retention-days: 7
 
       - name: Upload frontend artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: frontend/dist/frontend
+          path: frontend/dist
           if-no-files-found: error
           retention-days: 7
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+    if: always()
+
+    steps:
+      - name: Generate CI summary
+        run: |
+          echo "## CampusFlow CI Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Backend | ${{ needs.backend.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Frontend | ${{ needs.frontend.result }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if any required job failed
+        if: needs.backend.result != 'success' || needs.frontend.result != 'success'
+        run: exit 1
