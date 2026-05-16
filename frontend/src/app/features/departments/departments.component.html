@@ -43,7 +43,7 @@
 </section>
 
 @if (showPanel) {
-  <div class="modal-backdrop" (click)="showPanel = false"></div>
+  <button class="modal-backdrop" type="button" aria-label="Close department panel" (click)="showPanel = false"></button>
   <aside class="side-panel">
     <div class="side-panel__head">
       <div><h3>{{ editing ? 'Edit department' : 'New department' }}</h3><p>Use short, clear names like Finance, Library, Academics.</p></div>
@@ -69,4 +69,4 @@
   title="Delete department"
   [message]="'Delete ' + (pendingDelete?.name || 'this department') + '?'"
   (confirm)="confirmDelete()"
-  (cancel)="pendingDelete = null" />
+  (dismiss)="pendingDelete = null" />

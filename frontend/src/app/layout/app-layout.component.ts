@@ -75,15 +75,13 @@ export class AppLayoutComponent implements OnInit {
     this.loadNotifications();
   }
 
-  toggleNotifications(event: MouseEvent): void {
-    event.stopPropagation();
+  toggleNotifications(): void {
     this.showNotifications = !this.showNotifications;
     this.showProfile = false;
     if (this.showNotifications) this.loadNotifications();
   }
 
-  toggleProfile(event: MouseEvent): void {
-    event.stopPropagation();
+  toggleProfile(): void {
     this.showProfile = !this.showProfile;
     this.showNotifications = false;
   }
@@ -138,8 +136,10 @@ export class AppLayoutComponent implements OnInit {
     });
   }
 
-  @HostListener('document:click')
-  closeMenus(): void {
+  @HostListener('document:click', ['$event'])
+  closeMenus(event: MouseEvent): void {
+    const target = event.target as Element | null;
+    if (target?.closest('.menu-wrap')) return;
     this.showNotifications = false;
     this.showProfile = false;
   }
