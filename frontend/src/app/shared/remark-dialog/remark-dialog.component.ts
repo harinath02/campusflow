@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
   imports: [FormsModule],
   template: `
     @if (open) {
-      <div class="modal-backdrop" (click)="cancel.emit()"></div>
+      <button class="modal-backdrop" type="button" aria-label="Close remark dialog" (click)="dismiss.emit()"></button>
       <form class="dialog" (ngSubmit)="submit()" role="dialog" aria-modal="true">
         <p class="eyebrow">{{ actionLabel }}</p>
         <h3>{{ title }}</h3>
@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
           <textarea rows="4" name="remarks" [(ngModel)]="remarks"></textarea>
         </label>
         <div class="panel-actions">
-          <button class="btn ghost" type="button" (click)="cancel.emit()">Cancel</button>
+          <button class="btn ghost" type="button" (click)="dismiss.emit()">Cancel</button>
           <button class="btn primary" type="submit" [disabled]="saving || !remarks.trim()">{{ saving ? 'Saving...' : 'Save decision' }}</button>
         </div>
       </form>
@@ -31,7 +31,7 @@ export class RemarkDialogComponent {
   @Input() actionLabel = '';
   @Input() remarks = '';
   @Output() save = new EventEmitter<string>();
-  @Output() cancel = new EventEmitter<void>();
+  @Output() dismiss = new EventEmitter<void>();
 
   submit(): void {
     const value = this.remarks.trim();

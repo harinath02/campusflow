@@ -53,12 +53,12 @@
     <div class="approval-grid">
       <article class="approval-card">
         <span class="skeleton"></span>
-        <h3 class="skeleton"></h3>
+        <div class="skeleton" aria-hidden="true"></div>
         <p class="skeleton"></p>
       </article>
       <article class="approval-card">
         <span class="skeleton"></span>
-        <h3 class="skeleton"></h3>
+        <div class="skeleton" aria-hidden="true"></div>
         <p class="skeleton"></p>
       </article>
     </div>
@@ -120,5 +120,5 @@
   [actionLabel]="decision || ''"
   [remarks]="remarks"
   (save)="saveDecision($event)"
-  (cancel)="closeDecision()"
+  (dismiss)="closeDecision()"
 />

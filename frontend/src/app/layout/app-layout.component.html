@@ -37,12 +37,12 @@
         }
 
         <div class="menu-wrap">
-          <button class="icon-button" type="button" (click)="toggleNotifications($event)" aria-label="Open notifications">
+          <button class="icon-button" type="button" (click)="toggleNotifications()" aria-label="Open notifications">
             N
             @if (unreadCount) { <span class="dot">{{ unreadCount }}</span> }
           </button>
           @if (showNotifications) {
-            <div class="dropdown notifications" (click)="$event.stopPropagation()">
+            <div class="dropdown notifications">
               <div class="dropdown-head">
                 <strong>Notifications</strong>
                 <button type="button" class="link-button" (click)="markAllRead()">Mark all read</button>
@@ -54,7 +54,16 @@
                 </article>
               } @else {
                 @for (notification of notifications; track notification.id) {
-                  <article class="notification" [class]="notificationTone(notification)" [class.unread]="!notification.read" (click)="markRead(notification)">
+                  <article
+                    class="notification"
+                    [class]="notificationTone(notification)"
+                    [class.unread]="!notification.read"
+                    role="button"
+                    tabindex="0"
+                    (click)="markRead(notification)"
+                    (keyup.enter)="markRead(notification)"
+                    (keyup.space)="markRead(notification)"
+                  >
                     <span></span>
                     <div>
                       <b>{{ notification.title }}</b>
@@ -74,7 +83,7 @@
         </div>
 
         <div class="menu-wrap">
-          <button class="profile-chip" type="button" (click)="toggleProfile($event)">
+          <button class="profile-chip" type="button" (click)="toggleProfile()">
             <span class="avatar">{{ initials }}</span>
             <span class="profile-text">
               <strong>{{ currentUser?.name || 'User' }}</strong>
@@ -82,7 +91,7 @@
             </span>
           </button>
           @if (showProfile) {
-            <div class="dropdown profile" (click)="$event.stopPropagation()">
+            <div class="dropdown profile">
               <div class="profile-card">
                 <span class="avatar large">{{ initials }}</span>
                 <h3>{{ currentUser?.name || 'User' }}</h3>
